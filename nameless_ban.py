@@ -1,29 +1,47 @@
+
 #!/usr/bin/env python3
-# ɴᴀᴍᴇʟᴇss ʙᴀɴ ᴛᴏᴏʟ 😈👑
-# ᴏᴡɴᴇʀ: @nameless_himself
-# ᴛᴇʟᴇɢʀᴀᴍ: t.me/nameless_himself
+"""
+═══════════════════════════════════════════════════════════════════════════
+    ɴᴀᴍᴇʟᴇss ᴛᴇʟᴇɢʀᴀᴍ ᴍᴀss ʀᴇᴘᴏʀᴛᴇʀ ᴠ3.0 - ɴᴜᴄʟᴇᴀʀ ᴇᴅɪᴛɪᴏɴ
+═══════════════════════════════════════════════════════════════════════════
+    ᴏᴡɴᴇʀ: ɴᴀᴍᴇʟᴇss
+    ᴄʜᴀɴɴᴇʟ: ᴛ.ᴍᴇ/ɴᴀᴍᴇʟᴇssᴛᴇᴄʜɪɴᴄ
+═══════════════════════════════════════════════════════════════════════════
+"""
 
 import os
 import sys
-import random
 import time
+import random
+import hashlib
 import json
-import re
-import urllib.parse
+import smtplib
+import requests
 import threading
 from datetime import datetime
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 try:
-    import requests
-    from colorama import Fore, Back, Style, init
+    from colorama import Fore, Style, init
     init(autoreset=True)
 except ImportError:
-    os.system("pip install requests colorama -q")
-    import requests
-    from colorama import Fore, Back, Style, init
+    os.system("pip install colorama requests -q")
+    from colorama import Fore, Style, init
     init(autoreset=True)
 
-# ═══ ᴄᴏʟᴏʀs ═══
+# ═══════════════════════════════════════════════════════════════════
+# ᴄᴏɴғɪɢᴜʀᴀᴛɪᴏɴ
+# ═══════════════════════════════════════════════════════════════════
+
+VERSION = "3.0 ɴᴜᴄʟᴇᴀʀ"
+OWNER = "ɴᴀᴍᴇʟᴇss"
+CHANNEL = "ᴛ.ᴍᴇ/ɴᴀᴍᴇʟᴇssᴛᴇᴄʜɪɴᴄ"
+
+AUTH_USERNAME = hashlib.sha256("admin nameless".encode()).hexdigest()
+AUTH_PASSWORD = hashlib.sha256("password123$".encode()).hexdigest()
+MAX_LOGIN_ATTEMPTS = 3
+
 R = Fore.RED
 G = Fore.GREEN
 Y = Fore.YELLOW
@@ -34,36 +52,19 @@ B = Fore.BLUE
 RESET = Style.RESET_ALL
 BOLD = Style.BRIGHT
 
-VERSION = "v1.0"
-OWNER = "@nameless_himself"
-OWNER_LINK = "t.me/nameless_himself"
-CHANNEL = "t.me/namelesstechinc"
-
-TG_ABUSE_EMAILS = [
+TG_EMAILS = [
     "abuse@telegram.org",
     "spam@telegram.org",
     "dmca@telegram.org",
     "support@telegram.org",
     "legal@telegram.org",
-    "childabuse@telegram.org",
+    "stopCA@telegram.org",
     "dsa-report@telegram.org",
-    "terrorism@telegram.org"
-]
-
-WA_BAN_EMAILS = [
-    "support@support.whatsapp.com",
-    "abuse@support.whatsapp.com",
-    "security@support.whatsapp.com",
-    "legal@support.whatsapp.com",
-    "dmca@support.whatsapp.com",
-    "privacy@support.whatsapp.com",
-]
-
-WA_APPEAL_EMAILS = [
-    "appeals@support.whatsapp.com",
-    "support@whatsapp.com",
-    "android@support.whatsapp.com",
-    "ios@support.whatsapp.com",
+    "security@telegram.org",
+    "sticker@telegram.org",
+    "recover@telegram.org",
+    "content@telegram.org",
+    "privacy@telegram.org"
 ]
 
 SMTP_ACCOUNTS = [
@@ -78,221 +79,43 @@ SMTP_ACCOUNTS = [
     ("golliblegreg@gmail.com", "phmtujiciwuncqih")
 ]
 
-FAKE_NAMES = [
-    "Amina Yusuf", "Tariq Rahman", "Leila Alami", "Diego Morales",
-    "Sofia Petrov", "Rajesh Kumar", "Mei Lin Zhao", "Kwame Osei",
-    "Chloe Dubois", "Mateo Fernandez", "Nia Thompson", "Arjun Patel",
-    "Yara Hassan", "Luca Rossi", "Amara Singh", "Elias Johansson",
-    "Hana Kim", "Priya Sharma", "Malik Washington", "Zara Malik",
-    "Rafael Costa", "Layla El-Sayed", "Chen Wei", "Dante Rivera",
-    "Noor Fatima", "Santiago Vega", "Aisha Baig", "Omar Farooq",
-    "Fatima Zahra", "Ibrahim Khalil", "Nadia Rahman", "Jamal Carter",
-    "Sana Khan", "Elena Volkov", "Marcus Adebayo", "Ravi Shankar",
-    "Camila Ortiz", "Zainab Akhtar", "Maya Reddy", "Amir Hosseini",
+REPORTER_NAMES = [
+    "Sarah Mitchell", "James Anderson", "Maria Garcia", "David Chen",
+    "Emma Williams", "Michael Brown", "Sophia Martinez", "Robert Taylor",
+    "Olivia Johnson", "William Jones", "Isabella Davis", "Christopher Miller",
+    "Ava Wilson", "Daniel Moore", "Mia Jackson", "Matthew Martin",
+    "Charlotte Lee", "Anthony White", "Amelia Harris", "Andrew Thompson",
+    "Harper Garcia", "Ethan Rodriguez", "Abigail Martinez", "Alexander Hernandez",
+    "Emily Lopez", "Benjamin Gonzalez", "Elizabeth Wilson", "Samuel Anderson",
+    "Victoria Adams", "Nathan Scott", "Lily Turner", "Lucas Harris",
+    "Grace Walker", "Ryan Hall", "Chloe Young", "Brandon King"
 ]
 
-TG_MESSAGES = [
-    """To the Telegram Trust and Safety Team,
-
-I am filing an urgent, high-priority enforcement report against Telegram account @{target} and demanding immediate permanent suspension.
-
-This account is actively engaged in:
-— Distribution of child sexual abuse material (CSAM)
-— Active terrorist recruitment propaganda
-— Coordinated mass phishing attacks stealing banking credentials
-— Large-scale investment fraud targeting vulnerable users
-— Non-consensual intimate image distribution
-— Coordinated harassment campaigns against private individuals
-
-Under the EU Digital Services Act (DSA) Article 16, this report constitutes formal legal notice obligating Telegram to act immediately.
-
-REQUIRED ACTIONS:
-1. Immediate permanent account suspension
-2. IP address logging and preservation
-3. Full user data disclosure to law enforcement
-4. Escalation to Telegram legal and compliance team
-
-Regards,
-{reporter_name}""",
-
-    """To the Telegram Trust and Safety Team,
-
-URGENT CRIMINAL ENFORCEMENT NOTICE — ACCOUNT @{target}
-
-This account is in active violation of Telegram's Terms of Service, the EU Digital Services Act, international child protection statutes, and criminal law across multiple jurisdictions.
-
-Documented violations:
-— Real-time CSAM distribution
-— Active terrorist cell coordination
-— Mass-scale financial fraud targeting elderly users
-— Organized phishing infrastructure impersonating banks
-— Graphic violent content distribution
-— Coordinated account hijacking operations
-— Sexual exploitation of minors
-
-REQUIRED SAME-DAY ACTIONS:
-— Permanent account termination
-— Full data preservation for law enforcement
-— Immediate referral to NCMEC
-— Escalation to senior Trust and Safety leadership
-
-Regards,
-{reporter_name}""",
-
-    """To Telegram Abuse and Legal Team,
-
-I am formally notifying Telegram of active criminal abuse through account @{target}.
-
-Confirmed violations:
-— Large-scale romance scam operations
-— Malware and spyware distribution
-— Coordinated harassment of minors
-— Fake cryptocurrency investment fraud
-— Impersonating Telegram staff to steal credentials
-— Non-consensual intimate imagery of identifiable victims
-— Operating illegal drug trafficking networks
-
-This report serves as formal notice under DSA Article 16.
-Immediate enforcement action required.
-
-Regards,
-{reporter_name}"""
+REPORTER_ORGS = [
+    "Internet Watch Foundation",
+    "EU Digital Safety Coalition",
+    "Child Protection Alliance",
+    "Cybercrime Reporting Unit",
+    "Digital Rights Watch",
+    "Global Internet Safety Board",
+    "Anti-Fraud Task Force",
+    "Online Safety Alliance"
 ]
 
-WA_BAN_MESSAGES = [
-    """To the WhatsApp Trust and Safety Team,
-
-URGENT CYBERCRIME COMPLAINT — NUMBER {target}
-
-This WhatsApp account is actively engaged in:
-— Mass phishing impersonating banks and government portals
-— Distribution of child sexual abuse material
-— Coordinated account takeover attacks
-— Large-scale financial fraud with confirmed victims
-— Sextortion targeting minors
-— Malware distribution via WhatsApp links
-
-Immediate permanent termination required.
-Full data must be preserved for law enforcement.
-
-Regards,
-{reporter_name}""",
-
-    """To the WhatsApp Cybercrime Enforcement Team,
-
-FORMAL CRIMINAL COMPLAINT — {target}
-
-This account is part of an organized cybercrime network:
-— Industrial phishing stealing banking credentials at scale
-— CSAM distribution as exploitation bait
-— Social engineering to harvest OTPs and passwords
-— Advance-fee fraud with documented victims
-— Coordinated harassment and stalking campaigns
-— Malware and ransomware distribution
-
-MANDATORY ACTIONS:
-1. Immediate permanent ban
-2. Number global blacklisting
-3. Law enforcement data disclosure
-4. NCMEC referral for CSAM
-
-Regards,
-{reporter_name}"""
+WEB_ENDPOINTS = [
+    "https://telegram.org/support",
+    "https://telegram.org/abuse",
+    "https://telegram.org/dsa-report",
+    "https://telegram.org/dmca"
 ]
 
-WA_APPEAL_MESSAGES = [
-    """Dear WhatsApp Trust and Safety Team,
-
-I am formally appealing the ban on WhatsApp account {target}.
-
-This account is my sole means of communication with my family, employer, and emergency contacts. The sudden ban has caused severe disruption to my personal and professional life.
-
-I have never knowingly violated WhatsApp's Terms of Service. I believe this ban resulted from:
-— Coordinated false reporting by malicious users
-— An automated system error
-— Unauthorized access to my account
-
-I respectfully request:
-1. Full manual review of my account activity
-2. Identification of the specific ban trigger
-3. Restoration of access upon confirmation of no wrongdoing
-
-I am fully prepared to cooperate with any verification process.
-
-Sincerely,
-{reporter_name}""",
-
-    """Dear WhatsApp Appeals Team,
-
-FORMAL UNBAN APPEAL — ACCOUNT {target}
-
-This account represents my only reliable communication channel with family, including elderly relatives who depend on me, and professional contacts critical to my livelihood.
-
-I have used this account exclusively for lawful personal and professional communication throughout its history. I believe this ban was applied in error due to:
-— Coordinated mass false reports from another user
-— Automated enforcement misfire without human review
-— Possible account compromise I had no knowledge of
-
-I am requesting urgent manual review and account restoration.
-I will cooperate fully with any process required.
-
-Respectfully,
-{reporter_name}"""
-]
-
-DSA_MESSAGES = [
-    """FORMAL LEGAL NOTICE UNDER EU DIGITAL SERVICES ACT
-REGULATION (EU) 2022/2065 — ARTICLE 16 & ARTICLE 17
-
-Date: {date}
-Reference: DSA-{ref_id}
-Submitted By: {reporter_name}
-Platform: Telegram Messenger / Telegram FZ-LLC
-Target: {target}
-
-To the Telegram DSA Compliance and Legal Team,
-
-This notice is submitted pursuant to Article 16 of the EU Digital Services Act (Regulation EU 2022/2065), constituting a legally binding complaint requiring mandatory action.
-
-ILLEGAL CONTENT AND APPLICABLE LAW:
-
-1. CHILD SEXUAL ABUSE MATERIAL (CSAM)
-   Law: Directive 2011/93/EU Article 5; Budapest Convention Article 9
-   Severity: CRITICAL — Mandatory immediate removal
-
-2. TERRORIST CONTENT
-   Law: EU TCO Regulation 2021/784 — One-hour removal obligation
-   Severity: CRITICAL
-
-3. ORGANIZED FINANCIAL FRAUD
-   Law: Directive 2013/40/EU; Directive 2019/713
-   Severity: HIGH — Active financial harm to victims
-
-4. COORDINATED HARASSMENT
-   Law: Directive 2012/29/EU
-   Severity: HIGH
-
-DSA COMPLIANCE OBLIGATIONS:
-— Article 16(3): Process this notice in a timely manner
-— Article 17: Provide statement of reasons for any decision
-— Article 92: Obligations apply EU-wide
-
-NON-COMPLIANCE CONSEQUENCES:
-— Fines up to 6% of global annual turnover (DSA Article 74)
-— Individual member state enforcement actions
-— Criminal referral where platform liability applies
-
-REQUIRED IMMEDIATE ACTIONS:
-1. Suspend account/channel/group {target}
-2. Preserve all data for law enforcement
-3. Refer CSAM to NCMEC
-4. Provide written confirmation of actions taken
-
-I confirm this notice is submitted in good faith under DSA Article 16(2)(e).
-
-{reporter_name}
-Date: {date}
-Reference: DSA-{ref_id}"""
+USER_AGENTS = [
+    "TelegramDesktop/4.8.1 (Windows NT 10.0; Win64; x64)",
+    "TelegramDesktop/4.9.2 (Macintosh; Intel Mac OS X 13_0)",
+    "TelegramAndroid/10.0.1 (Android 13; Pixel 7)",
+    "TelegramIOS/10.1.2 (iPhone; iOS 17.0)",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
 ]
 
 stats = {
@@ -301,15 +124,441 @@ stats = {
     "web_sent": 0,
     "web_failed": 0,
     "total": 0,
-    "start_time": None
+    "start_time": None,
+    "session_target": "",
+    "session_start": None
 }
 
-stop_flag = False
+# ═══════════════════════════════════════════════════════════════════
+# ᴀsᴄɪɪ ᴀʀᴛ
+# ═══════════════════════════════════════════════════════════════════
 
+LOGIN_ART = """
+⠛⠛⣿⣿⣿⣿⣿⡷⢶⣦⣶⣶⣤⣤⣤⣀⠀⠀⠀
+⠀⠀⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⡀⠀
+⠀⠀⠀⠉⠉⠉⠙⠻⣿⣿⠿⠿⠛⠛⠛⠻⣿⣿⣇⠀
+⠀⠀⢤⣀⣀⣀⠀⠀⢸⣷⡄⠀⣁⣀⣤⣴⣿⣿⣿⣆
+⠀⠀⠀⠀⠹⠏⠀⠀⠀⣿⣧⠀⠹⣿⣿⣿⣿⣿⡿⣿
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠛⠿⠇⢀⣼⣿⣿⠛⢯⡿⡟
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠦⠴⢿⢿⣿⡿⠷⠀⣿⠀
+⠀⠀⠀⠀⠀⠀⠀⠙⣷⣶⣶⣤⣤⣤⣤⣤⣶⣦⠃⠀
+⠀⠀⠀⠀⠀⠀⠀⢐⣿⣾⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠈⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⠻⢿⣿⣿⣿⣿⠟⠀⠀⠀"""
+
+ATTACK_ART = """
+⣠⣶⣶⣶⣶
+⠀⠀⠀⠀⠀⠀⢰⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠻⣿⣿⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⣴⣶⣶⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⣸⣿⣿⣿⣿⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⢀⣿⣿⣿⣿⣿⣧
+⠀⠀⠀⠀⣼⣿⣿⣿⡿⣿⣿⣆⠀⠀⠀⠀⠀⠀⣠⣴⣶⣤⡀⠀
+⠀⠀⠀⢰⣿⣿⣿⣿⠃⠈⢻⣿⣦⠀⠀⠀⠀⣸⣿⣿⣿⣿⣷⠀
+⠀⠀⠀⠘⣿⣿⣿⡏⣴⣿⣷⣝⢿⣷⢀⠀⢀⣿⣿⣿⣿⡿⠋⠀
+⠀⠀⠀⠀⢿⣿⣿⡇⢻⣿⣿⣿⣷⣶⣿⣿⣿⣿⣿⣷⠀⠀⠀⠀
+⠀⠀⠀⠀⢸⣿⣿⣇⢸⣿⣿⡟⠙⠛⠻⣿⣿⣿⣿⡇⠀⠀⠀⠀
+⣴⣿⣿⣿⣿⣿⣿⣿⣠⣿⣿⡇⠀⠀⠀⠉⠛⣽⣿⣇⣀⣀⣀⠀
+⠙⠻⠿⠿⠿⠿⠿⠟⠿⠿⠿⠇⠀⠀⠀⠀⠀⠻⠿⠿⠛⠛⠛⠀"""
+
+# ═══════════════════════════════════════════════════════════════════
+# ʀᴇᴘᴏʀᴛ ᴛᴇᴍᴘʟᴀᴛᴇs (ᴇxᴘᴀɴᴅᴇᴅ)
+# ═══════════════════════════════════════════════════════════════════
+
+DETAILED_REPORT = """Dear Telegram Moderation and Trust & Safety Team,
+
+I am writing on behalf of {org} to formally report a Telegram account engaged in multiple serious criminal violations of Telegram's Terms of Service and applicable international law.
+
+═══════════════════════════════════════════════════════════════════
+REPORTED ACCOUNT DETAILS:
+═══════════════════════════════════════════════════════════════════
+Username:       @{target}
+Profile URL:    https://t.me/{target}
+Report Date:    {date}
+Report Time:    {time}
+Reference ID:   DSA-{report_id}
+Submitted By:   {reporter_name} — {org}
+Reporter Email: {reporter_email}
+
+═══════════════════════════════════════════════════════════════════
+CONFIRMED VIOLATIONS:
+═══════════════════════════════════════════════════════════════════
+
+[VIOLATION 1] — CHILD SEXUAL ABUSE MATERIAL (CSAM)
+Severity: CRITICAL ⚠️
+This account has been confirmed sharing, distributing, and soliciting
+Child Sexual Abuse Material (CSAM) in violation of:
+- Directive 2011/93/EU Article 5
+- Budapest Convention on Cybercrime Article 9
+- UN Optional Protocol on the Rights of the Child
+Evidence: Documented posts with timestamps visible showing CSAM on {date}.
+Required Action: Immediate account suspension + NCMEC referral within 1 hour.
+
+[VIOLATION 2] — TERRORIST & EXTREMIST CONTENT
+Severity: CRITICAL ⚠️
+Account promotes, recruits for, and coordinates terrorist activities.
+Applicable Law: EU TCO Regulation 2021/784 — 1-hour mandatory removal.
+Evidence: Channels sharing radicalization content, recruitment material.
+
+[VIOLATION 3] — ILLEGAL DRUG TRAFFICKING
+Severity: HIGH
+Account coordinates sales of narcotics including cannabis, MDMA, cocaine,
+opioids and fentanyl with crypto payment wallets openly advertised.
+Applicable Law: UN Single Convention on Narcotic Drugs 1961.
+Evidence: Timestamped posts with pricing, delivery, and payment instructions.
+
+[VIOLATION 4] — ORGANIZED FINANCIAL FRAUD
+Severity: HIGH
+Operating pump-and-dump crypto schemes, fake investment groups, rug pulls,
+and exit scams targeting thousands of victims with documented losses.
+Applicable Law: Directive 2013/40/EU; Directive 2019/713 on fraud.
+Evidence: Fraudulent token promotions followed by documented rug pulls.
+
+[VIOLATION 5] — HACKING SERVICES & CYBERCRIME
+Severity: HIGH
+Selling account takeover services, phishing kits, keyloggers, RATs,
+stolen credentials databases and DDoS-for-hire services.
+Applicable Law: Budapest Convention Articles 2-10; Directive 2013/40/EU.
+Evidence: Active advertisement posts with pricing and service menus.
+
+[VIOLATION 6] — HUMAN TRAFFICKING & EXPLOITATION
+Severity: CRITICAL ⚠️
+Coordinating forced labor recruitment, sexual exploitation, and smuggling
+operations through coded language and private group referrals.
+Applicable Law: Directive 2011/36/EU on human trafficking.
+
+═══════════════════════════════════════════════════════════════════
+LEGAL OBLIGATIONS — DSA ARTICLE 16 COMPLIANCE:
+═══════════════════════════════════════════════════════════════════
+
+This report is formally submitted under:
+- EU Digital Services Act (DSA) Regulation (EU) 2022/2065
+- Article 16 (Notice and Action Mechanism)
+- Article 17 (Statement of Reasons)
+- Article 34 (Systemic Risk Assessment)
+
+MANDATORY RESPONSE TIMELINE:
+- CSAM/Terrorist content: Removal within 1 hour (TCO Reg. 2021/784)
+- Acknowledgment of this notice: Within 24 hours
+- Full written response with actions taken: Within 72 hours
+- Data preservation for law enforcement: Immediate
+
+NON-COMPLIANCE CONSEQUENCES:
+- Fines up to 6% of global annual turnover (DSA Article 74)
+- Criminal liability referral to Europol and national authorities
+- Emergency injunction applications in EU member state courts
+- Referral to NCMEC, IWF, and relevant law enforcement agencies
+
+═══════════════════════════════════════════════════════════════════
+REQUESTED IMMEDIATE ACTIONS:
+═══════════════════════════════════════════════════════════════════
+1. Permanent suspension of @{target} within 24 hours
+2. Termination of all associated channels and groups
+3. Full IP address and device data preservation
+4. Disclosure package prepared for law enforcement
+5. NCMEC CyberTipline report for CSAM content
+6. Written confirmation of all actions taken
+
+I confirm this report is submitted in good faith under DSA Article 16(2)(e).
+
+Best regards,
+{reporter_name}
+{org}
+Email: {reporter_email}
+Reference: DSA-{report_id}
+Date: {date}
+"""
+
+SHORT_REPORT = """URGENT ABUSE REPORT — Telegram Trust & Safety
+
+Reference: DSA-{report_id}
+Date: {date} {time}
+Target: @{target} | https://t.me/{target}
+Reporter: {reporter_name} ({org})
+
+VIOLATIONS CONFIRMED:
+✗ Child Sexual Abuse Material (CSAM) — CRITICAL
+✗ Terrorist recruitment content — CRITICAL
+✗ Illegal drug trafficking coordination — HIGH
+✗ Organized financial fraud / rug pulls — HIGH
+✗ Hacking services and stolen data sales — HIGH
+✗ Human trafficking coordination — CRITICAL
+
+This account poses immediate danger to platform users and minors.
+Evidence package available upon formal law enforcement request.
+
+DSA Article 16 mandatory action required within 24 hours.
+CSAM content requires removal within 1 hour per TCO Regulation 2021/784.
+
+{reporter_name} | {org}
+DSA Reference: DSA-{report_id}
+"""
+
+DSA_LEGAL_NOTICE = """FORMAL LEGAL NOTICE
+REGULATION (EU) 2022/2065 — DIGITAL SERVICES ACT
+ARTICLE 16 (NOTICE & ACTION) + ARTICLE 17 (STATEMENT OF REASONS)
+
+══════════════════════════════════════════════════════════════════
+Date Submitted:   {date} at {time}
+Legal Reference:  DSA-{report_id}
+Submitted By:     {reporter_name}
+Organization:     {org}
+Contact Email:    {reporter_email}
+Platform:         Telegram Messenger / Telegram FZ-LLC (Dubai, UAE)
+Subject Account:  @{target} — https://t.me/{target}
+══════════════════════════════════════════════════════════════════
+
+TO THE TELEGRAM DSA COMPLIANCE OFFICER AND LEGAL TEAM,
+
+This constitutes a formal legally binding notice under the EU Digital
+Services Act requiring mandatory platform action and written response.
+
+ILLEGAL CONTENT CATEGORIES AND APPLICABLE LAW:
+
+┌─────────────────────────────────────────────────────────────┐
+│ CATEGORY          │ LAW                    │ SEVERITY       │
+├─────────────────────────────────────────────────────────────┤
+│ CSAM              │ Directive 2011/93/EU   │ CRITICAL       │
+│ Terrorist Content │ TCO Reg. 2021/784      │ CRITICAL       │
+│ Drug Trafficking  │ UN Conv. 1961          │ HIGH           │
+│ Financial Fraud   │ Directive 2013/40/EU   │ HIGH           │
+│ Cybercrime        │ Budapest Conv.         │ HIGH           │
+│ Human Trafficking │ Directive 2011/36/EU   │ CRITICAL       │
+└─────────────────────────────────────────────────────────────┘
+
+PLATFORM OBLIGATIONS UNDER DSA:
+— Article 16(3): Timely, diligent processing of this notice
+— Article 17: Written statement of reasons for decisions made
+— Article 92: Full application within EU territory
+— TCO Article 3: CSAM/terrorist content removal within ONE HOUR
+
+CONSEQUENCES OF NON-COMPLIANCE:
+— Financial penalties: Up to 6% global annual revenue (DSA Art. 74)
+— Operational suspension orders in EU member states
+— Criminal referral to Europol Cybercrime Centre (EC3)
+— Emergency injunctive relief in relevant EU courts
+— Public transparency report filed with EU Commission
+
+REQUIRED ACTIONS — MANDATORY TIMELINE:
+1. [IMMEDIATE]  Preserve all account data (@{target})
+2. [1 HOUR]     Remove CSAM and terrorist content
+3. [24 HOURS]   Suspend account and associated entities
+4. [24 HOURS]   Acknowledge receipt of this formal notice
+5. [48 HOURS]   File NCMEC CyberTipline report
+6. [72 HOURS]   Provide written statement of reasons (Art. 17)
+
+I confirm this notice is submitted in good faith as required by
+DSA Article 16(2)(e) and represents a formal legal complaint.
+
+══════════════════════════════════════════════════════════════════
+{reporter_name}
+{org}
+Email: {reporter_email}
+Legal Reference: DSA-{report_id}
+Submitted: {date} at {time}
+══════════════════════════════════════════════════════════════════
+
+ESCALATION NOTICE: Failure to comply will result in immediate referral
+to the Irish Data Protection Commission, Europol EC3, NCMEC, IWF,
+and national law enforcement agencies in all applicable EU jurisdictions.
+"""
+
+NCMEC_REPORT = """CYBERTIPLINE REPORT — NATIONAL CENTER FOR MISSING & EXPLOITED CHILDREN
+CC: Telegram Trust & Safety <abuse@telegram.org>
+
+CyberTip Reference: NCMEC-{report_id}
+Date: {date} at {time}
+Reporter: {reporter_name} | {org}
+Contact: {reporter_email}
+
+PLATFORM: Telegram Messenger
+ACCOUNT REPORTED: @{target}
+URL: https://t.me/{target}
+
+NATURE OF REPORT:
+This CyberTipline report documents the confirmed presence of Child Sexual
+Abuse Material (CSAM) being shared, distributed, and solicited by the
+above Telegram account.
+
+INCIDENT DETAILS:
+- Date of discovery: {date}
+- Content type: CSAM (photographic and video material)
+- Distribution method: Telegram channel/group links
+- Geographic indicators: Multiple jurisdictions
+- Evidence: Timestamped screenshots available upon formal request
+
+PLATFORM NOTIFICATION:
+Telegram has been formally notified via DSA Article 16 Notice (DSA-{report_id}).
+This report is submitted concurrently to ensure mandatory NCMEC reporting
+obligations are fulfilled under 18 U.S.C. § 2258A.
+
+REQUESTED ACTIONS:
+1. Log and process this CyberTipline report
+2. Forward to relevant law enforcement agencies
+3. Coordinate with Telegram for account data disclosure
+4. Issue preservation letter to Telegram for account @{target}
+
+{reporter_name}
+{org}
+Reference: NCMEC-{report_id}
+Date: {date}
+"""
+
+INTERPOL_NOTICE = """INTERPOL CYBERCRIME DIVISION — NOTICE OF CRIMINAL ACTIVITY
+CC: Telegram Legal <legal@telegram.org>, Telegram Abuse <abuse@telegram.org>
+
+INTERPOL Reference: IC-{report_id}
+Date: {date} at {time}
+Submitted By: {reporter_name} | {org}
+
+SUBJECT: Criminal Network Activity on Telegram Platform
+ACCOUNT: @{target} | https://t.me/{target}
+
+This notice is submitted to the INTERPOL Cybercrime Division and copied
+to Telegram's legal team to document confirmed criminal network activity
+operating through Telegram infrastructure.
+
+CRIMINAL ACTIVITIES DOCUMENTED:
+1. Transnational drug trafficking (coordinated across multiple countries)
+2. Cybercrime services (hacking, phishing, credential theft)
+3. Financial crimes (crypto fraud, money laundering)
+4. Human trafficking coordination
+5. CSAM distribution network
+
+APPLICABLE INTERNATIONAL FRAMEWORKS:
+- INTERPOL's Global Complex for Innovation (IGCI) mandate
+- Budapest Convention on Cybercrime (ETS No. 185)
+- UN Convention Against Transnational Organized Crime (UNTOC)
+- Financial Action Task Force (FATF) Recommendation 15
+
+PRESERVATION REQUEST:
+Telegram is formally requested to preserve all data associated with
+account @{target} including but not limited to:
+- Account registration details (IP, device, phone number)
+- Message metadata and content
+- Payment and transaction records
+- Associated accounts and group memberships
+- Login history and access logs
+
+{reporter_name}
+{org}
+INTERPOL Reference: IC-{report_id}
+Date: {date}
+"""
+
+# ═══════════════════════════════════════════════════════════════════
+# ᴜᴛɪʟɪᴛʏ ғᴜɴᴄᴛɪᴏɴs
+# ═══════════════════════════════════════════════════════════════════
 
 def clear():
     os.system("clear" if os.name != "nt" else "cls")
 
+def inject_data(template, target):
+    name = random.choice(REPORTER_NAMES)
+    org = random.choice(REPORTER_ORGS)
+    email = random.choice([acc[0] for acc in SMTP_ACCOUNTS])
+    report_id = random.randint(100000, 999999)
+    date = datetime.now().strftime("%d %B %Y")
+    time_str = datetime.now().strftime("%H:%M:%S UTC")
+    return template.format(
+        target=target.lstrip('@'),
+        reporter_name=name,
+        org=org,
+        reporter_email=email,
+        report_id=report_id,
+        date=date,
+        time=time_str
+    )
+
+def loading_bar(current, total, width=35):
+    filled = int(width * current / total)
+    bar = "█" * filled + "░" * (width - filled)
+    percent = current / total * 100
+    return f"{G}[{bar}] {W}{percent:.1f}%{RESET}"
+
+def get_input(prompt, color=C):
+    return input(f"{color}{prompt}{RESET} ").strip()
+
+def get_target():
+    target = get_input("ᴇɴᴛᴇʀ ᴛᴀʀɢᴇᴛ ᴜsᴇʀɴᴀᴍᴇ (ᴡɪᴛʜᴏᴜᴛ @) →", Y)
+    if not target:
+        print(f"{R}[!] ɪɴᴠᴀʟɪᴅ ᴛᴀʀɢᴇᴛ{RESET}")
+        return None
+    return target.lstrip('@')
+
+def get_amount(max_amount=500):
+    try:
+        amount = int(get_input(f"ᴇɴᴛᴇʀ ᴀᴍᴏᴜɴᴛ (1-{max_amount}) →", Y))
+        if 1 <= amount <= max_amount:
+            return amount
+    except:
+        pass
+    print(f"{R}[!] ɪɴᴠᴀʟɪᴅ ᴀᴍᴏᴜɴᴛ{RESET}")
+    return None
+
+# ═══════════════════════════════════════════════════════════════════
+# ᴀᴜᴛʜᴇɴᴛɪᴄᴀᴛɪᴏɴ
+# ═══════════════════════════════════════════════════════════════════
+
+def login_screen():
+    clear()
+    print(f"{M}{BOLD}{LOGIN_ART}{RESET}")
+    print(f"""
+{M}{BOLD}╔══════════════════════════════════════════════════╗
+║       ɴᴀᴍᴇʟᴇss sᴇᴄᴜʀᴇ ᴀᴄᴄᴇss sʏsᴛᴇᴍ v3.0      ║
+║           🔐 ᴀᴜᴛʜᴇɴᴛɪᴄᴀᴛɪᴏɴ ʀᴇǫᴜɪʀᴇᴅ 🔐          ║
+╚══════════════════════════════════════════════════╝{RESET}""")
+
+def authenticate():
+    attempts = 0
+    while attempts < MAX_LOGIN_ATTEMPTS:
+        login_screen()
+        remaining = MAX_LOGIN_ATTEMPTS - attempts
+        print(f"\n{Y}┌─「 🔐 ʟᴏɢɪɴ 」")
+        print(f"{Y}├─❏ ᴀᴛᴛᴇᴍᴘᴛs ʀᴇᴍᴀɪɴɪɴɢ : {W}{remaining}")
+        print(f"{Y}└─❏ ᴇɴᴛᴇʀ ᴄʀᴇᴅᴇɴᴛɪᴀʟs{RESET}\n")
+
+        try:
+            username = input(f"{C}👤 ᴜsᴇʀɴᴀᴍᴇ → {W}").strip()
+            password = input(f"{C}🔑 ᴘᴀssᴡᴏʀᴅ → {W}").strip()
+        except KeyboardInterrupt:
+            print(f"\n\n{R}[!] ᴀᴄᴄᴇss ᴅᴇɴɪᴇᴅ.{RESET}\n")
+            sys.exit(0)
+
+        hashed_user = hashlib.sha256(username.encode()).hexdigest()
+        hashed_pass = hashlib.sha256(password.encode()).hexdigest()
+
+        if hashed_user == AUTH_USERNAME and hashed_pass == AUTH_PASSWORD:
+            clear()
+            print(f"{M}{BOLD}{LOGIN_ART}{RESET}")
+            print(f"""
+{G}{BOLD}╔══════════════════════════════════════════════════╗
+║             ✅ ᴀᴄᴄᴇss ɢʀᴀɴᴛᴇᴅ ✅                 ║
+║          ᴡᴇʟᴄᴏᴍᴇ ʙᴀᴄᴋ, {OWNER}                 ║
+╚══════════════════════════════════════════════════╝{RESET}""")
+            time.sleep(2)
+            return True
+        else:
+            attempts += 1
+            remaining_after = MAX_LOGIN_ATTEMPTS - attempts
+            print(f"\n{R}[!] ❌ ɪɴᴄᴏʀʀᴇᴄᴛ ᴄʀᴇᴅᴇɴᴛɪᴀʟs{RESET}")
+            if remaining_after > 0:
+                delay = attempts * 3
+                print(f"{Y}[!] {remaining_after} ᴀᴛᴛᴇᴍᴘᴛ(s) ʟᴇғᴛ — ᴡᴀɪᴛɪɴɢ {delay}s...{RESET}")
+                time.sleep(delay)
+            else:
+                print(f"\n{R}{BOLD}")
+                print(f"╔══════════════════════════════════════════════════╗")
+                print(f"║   ⛔ ᴀᴄᴄᴏᴜɴᴛ ʟᴏᴄᴋᴇᴅ — ᴛᴏᴏ ᴍᴀɴʏ ᴀᴛᴛᴇᴍᴘᴛs      ║")
+                print(f"║          ᴀᴄᴄᴇss ᴘᴇʀᴍᴀɴᴇɴᴛʟʏ ᴅᴇɴɪᴇᴅ            ║")
+                print(f"╚══════════════════════════════════════════════════╝{RESET}")
+                time.sleep(2)
+                sys.exit(0)
+    return False
+
+# ═══════════════════════════════════════════════════════════════════
+# ᴜɪ
+# ═══════════════════════════════════════════════════════════════════
 
 def banner():
     clear()
@@ -322,445 +571,519 @@ def banner():
  ██║ ╚████║██║  ██║██║ ╚═╝ ██║███████╗███████╗███████╗███████║███████║
  ╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝╚══════╝╚══════╝╚══════╝
 {RESET}
-{C}┌─「 😈👑 ɴᴀᴍᴇʟᴇss ʙᴀɴ ᴛᴏᴏʟ {VERSION} 」
-{C}├─❏ ᴏᴡɴᴇʀ  : {W}{OWNER}
-{C}├─❏ ᴄʜᴀɴɴᴇʟ: {W}{CHANNEL}
-{C}├─❏ ᴛɪᴍᴇ   : {W}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-{C}└─❏ sᴛᴀᴛᴜs : {G}ᴏɴʟɪɴᴇ ✅
+{C}  ┌─「 😈👑 ɴᴀᴍᴇʟᴇss ᴛᴇʟᴇɢʀᴀᴍ ʙᴀɴ ᴛᴏᴏʟ {VERSION} 」
+{C}  ├─❏ ᴏᴡɴᴇʀ    : {W}{OWNER}
+{C}  ├─❏ ᴄʜᴀɴɴᴇʟ  : {W}{CHANNEL}
+{C}  ├─❏ ᴛɪᴍᴇ     : {W}{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+{C}  ├─❏ sᴍᴛᴘs    : {W}{len(SMTP_ACCOUNTS)} ɢᴍᴀɪʟ ᴀᴄᴄᴏᴜɴᴛs ʀᴇᴀᴅʏ
+{C}  ├─❏ ᴛᴀʀɢᴇᴛs  : {W}{len(TG_EMAILS)} ᴛᴇʟᴇɢʀᴀᴍ ᴀʙᴜsᴇ ᴇᴍᴀɪʟs
+{C}  ├─❏ ᴛᴇᴍᴘʟᴀᴛᴇs: {W}5 ʟᴇɢᴀʟ ʀᴇᴘᴏʀᴛ ᴛᴇᴍᴘʟᴀᴛᴇs
+{C}  └─❏ sᴛᴀᴛᴜs   : {G}ᴏɴʟɪɴᴇ ✅
 {RESET}""")
-
 
 def print_menu():
     print(f"""
-{C}┌─「 📋 ᴍᴀɪɴ ᴍᴇɴᴜ 」
-{C}├─❏ {W}[1] {Y}ʙᴀɴ ᴛᴇʟᴇɢʀᴀᴍ ᴜsᴇʀ
-{C}├─❏ {W}[2] {Y}ʙᴀɴ ᴛᴇʟᴇɢʀᴀᴍ ᴄʜᴀɴɴᴇʟ
-{C}├─❏ {W}[3] {Y}ʙᴀɴ ᴛᴇʟᴇɢʀᴀᴍ ɢʀᴏᴜᴘ
-{C}├─❏ {W}[4] {Y}ᴅsᴀ ʟᴇɢᴀʟ ɴᴏᴛɪᴄᴇ (ɴᴜᴄʟᴇᴀʀ 🔥)
-{C}├─❏ {W}[5] {Y}ᴡʜᴀᴛsᴀᴘᴘ ᴛᴇᴍᴘ ʙᴀɴ
-{C}├─❏ {W}[6] {Y}ᴡʜᴀᴛsᴀᴘᴘ ᴘᴇʀᴍ ʙᴀɴ
-{C}├─❏ {W}[7] {Y}ᴡʜᴀᴛsᴀᴘᴘ ᴜɴʙᴀɴ ᴀᴘᴘᴇᴀʟ
-{C}├─❏ {W}[8] {R}sᴛᴀᴛs
-{C}└─❏ {W}[0] {R}ᴇxɪᴛ
+{C}  ┌─「 📋 ᴍᴀɪɴ ᴍᴇɴᴜ 」
+{C}  ├─❏ {W}[1] {Y}ʙᴀɴ ᴛᴇʟᴇɢʀᴀᴍ ᴜsᴇʀ         {G}(sᴛᴀɴᴅᴀʀᴅ)
+{C}  ├─❏ {W}[2] {Y}ʙᴀɴ ᴛᴇʟᴇɢʀᴀᴍ ᴄʜᴀɴɴᴇʟ      {G}(sᴛᴀɴᴅᴀʀᴅ)
+{C}  ├─❏ {W}[3] {Y}ʙᴀɴ ᴛᴇʟᴇɢʀᴀᴍ ɢʀᴏᴜᴘ       {G}(sᴛᴀɴᴅᴀʀᴅ)
+{C}  ├─❏ {W}[4] {R}ᴅsᴀ ʟᴇɢᴀʟ ɴᴏᴛɪᴄᴇ          {R}(ɴᴜᴄʟᴇᴀʀ 🔥)
+{C}  ├─❏ {W}[5] {R}ᴍᴀss ᴇᴍᴀɪʟ ғʟᴏᴏᴅ          {R}(ᴍᴀx ᴘᴏᴡᴇʀ ⚡)
+{C}  ├─❏ {W}[6] {M}ɴᴄᴍᴇᴄ ᴄʏʙᴇʀᴛɪᴘ ʀᴇᴘᴏʀᴛ    {M}(ᴄsᴀᴍ ɴᴜᴄʟᴇᴀʀ 💀)
+{C}  ├─❏ {W}[7] {M}ɪɴᴛᴇʀᴘᴏʟ ɴᴏᴛɪᴄᴇ           {M}(ɪɴᴛᴇʀɴᴀᴛɪᴏɴᴀʟ 🌍)
+{C}  ├─❏ {W}[8] {Y}ᴄᴜsᴛᴏᴍ ʀᴇᴘᴏʀᴛ            {G}(ᴀᴅᴠᴀɴᴄᴇᴅ)
+{C}  ├─❏ {W}[9] {B}ᴍᴜʟᴛɪ-ᴛᴀʀɢᴇᴛ ʙᴀɴ         {B}(ʙᴜʟᴋ 🎯)
+{C}  ├─❏ {W}[10] {R}ɴᴜᴄʟᴇᴀʀ ᴀʟʟ-ɪɴ-ᴏɴᴇ      {R}(ᴍᴀxɪᴍᴜᴍ 💣)
+{C}  ├─❏ {W}[11] {C}sᴛᴀᴛɪsᴛɪᴄs              {C}(ᴠɪᴇᴡ 📊)
+{C}  ├─❏ {W}[12] {M}sᴇᴛᴛɪɴɢs               {M}(ᴄᴏɴғɪɢ ⚙️)
+{C}  └─❏ {W}[0]  {R}ᴇxɪᴛ
 {RESET}""")
 
-
-def loading_bar(current, total, width=40):
-    filled = int(width * current / total)
-    bar = "█" * filled + "░" * (width - filled)
-    percent = current / total * 100
-    return f"{G}[{bar}] {W}{percent:.1f}%{RESET}"
-
-
-def inject_message(message, target):
-    name = random.choice(FAKE_NAMES)
-    ref_id = random.randint(100000, 999999)
-    date = datetime.now().strftime("%d %B %Y")
-    message = message.replace("{target}", target)
-    message = message.replace("{reporter_name}", name)
-    message = message.replace("{ref_id}", str(ref_id))
-    message = message.replace("{date}", date)
-    return message
-
+# ═══════════════════════════════════════════════════════════════════
+# ᴇᴍᴀɪʟ + ᴡᴇʙ
+# ═══════════════════════════════════════════════════════════════════
 
 def send_email(target, subject, message, recipients):
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
-
     email_acc, pwd = random.choice(SMTP_ACCOUNTS)
     recipient = random.choice(recipients)
-    msg = MIMEMultipart()
-    msg['From'] = email_acc
+
+    msg = MIMEMultipart('alternative')
+    msg['From'] = f"{random.choice(REPORTER_NAMES)} <{email_acc}>"
     msg['To'] = recipient
     msg['Subject'] = subject
+    msg['X-Priority'] = '1'
+    msg['X-Report-ID'] = f"DSA-{random.randint(100000,999999)}"
     msg.attach(MIMEText(message, 'plain'))
 
-    # ᴛʀʏ ᴘᴏʀᴛ 587
     try:
-        s = smtplib.SMTP("smtp.gmail.com", 587, timeout=15)
-        s.ehlo()
-        s.starttls()
-        s.ehlo()
-        s.login(email_acc, pwd)
-        s.sendmail(email_acc, recipient, msg.as_string())
-        s.quit()
-        return True, recipient
+        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(email_acc, pwd)
+            server.sendmail(email_acc, recipient, msg.as_string())
+        return True, recipient, email_acc
     except:
         pass
 
-    # ғᴀʟʟʙᴀᴄᴋ ᴘᴏʀᴛ 465
     try:
-        s = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15)
-        s.login(email_acc, pwd)
-        s.sendmail(email_acc, recipient, msg.as_string())
-        s.quit()
-        return True, recipient
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=15) as server:
+            server.login(email_acc, pwd)
+            server.sendmail(email_acc, recipient, msg.as_string())
+        return True, recipient, email_acc
     except:
-        return False, recipient
+        return False, recipient, email_acc
 
-
-def send_web_report_tg(target, message):
-    urls = [
-        "https://telegram.org/support",
-        "https://telegram.org/abuse",
-        "https://telegram.org/dsa-report",
-        "https://telegram.org/dmca",
-    ]
-    headers = {
-        "Content-Type": "application/json",
-        "User-Agent": "TelegramDesktop/4.8.1",
-        "Origin": "https://telegram.org",
-    }
-    success = 0
-    for url in urls:
+def send_web_report(target, message):
+    success_count = 0
+    for url in WEB_ENDPOINTS:
+        headers = {
+            "Content-Type": "application/json",
+            "User-Agent": random.choice(USER_AGENTS),
+            "Origin": "https://telegram.org",
+            "Referer": "https://telegram.org/support",
+            "Accept-Language": random.choice(["en-US,en;q=0.9", "en-GB,en;q=0.8", "de-DE,de;q=0.9"])
+        }
         payload = {
-            "peer": target,
-            "category": "illegal_content",
-            "message": message[:4000]
+            "peer": target.lstrip('@'),
+            "category": random.choice(["illegal_content", "csam", "terrorism", "fraud", "drugs"]),
+            "message": message[:4000],
+            "timestamp": int(time.time()),
+            "report_id": f"DSA-{random.randint(100000,999999)}"
         }
         try:
             r = requests.post(url, json=payload, headers=headers, timeout=10)
             if r.status_code in (200, 201, 204):
-                success += 1
+                success_count += 1
         except:
             pass
-    return success
+    return success_count
 
+# ═══════════════════════════════════════════════════════════════════
+# ᴀᴛᴛᴀᴄᴋ ғᴜɴᴄᴛɪᴏɴs
+# ═══════════════════════════════════════════════════════════════════
 
-def send_web_report_wa(phone, message):
-    text_enc = urllib.parse.quote(message)
-    urls = [
-        f"https://wa.me/report?phone=12056384830&text={text_enc}",
-        "https://transparency.meta.com/forms/abuse/whatsapp",
-        "https://www.instagram.com/web/reports/create/",
-        "https://www.facebook.com/help/contact/263149623708370",
-    ]
-    success = 0
-    for url in urls:
-        try:
-            if "transparency" in url:
-                requests.post(url, data={"phone": phone.lstrip('+'),
-                              "details": message}, timeout=10)
-            elif "instagram" in url:
-                requests.post(url, json={"entry_point": "web",
-                              "phone_number": phone.lstrip('+'),
-                              "reason_id": "1"}, timeout=10)
-            elif "facebook" in url:
-                requests.post(url, data={"phone_number": phone.lstrip('+'),
-                              "your_name": random.choice(FAKE_NAMES)}, timeout=10)
-            else:
-                requests.get(url, timeout=10)
-            success += 1
-        except:
-            pass
-    return success
-
-
-def get_input(prompt, color=C):
-    return input(f"{color}{prompt}{RESET} ").strip()
-
-
-def run_attack_tg(target, amount, mode="user"):
-    global stop_flag
-    stop_flag = False
-    stats["email_sent"] = 0
-    stats["email_failed"] = 0
-    stats["web_sent"] = 0
-    stats["web_failed"] = 0
-    stats["total"] = 0
-    stats["start_time"] = datetime.now()
-
-    target = target.lstrip('@')
-
-    print(f"\n{M}{'='*55}")
-    print(f"{C}┌─「 🔥 ᴀᴛᴛᴀᴄᴋ sᴛᴀʀᴛᴇᴅ 」")
-    print(f"{C}├─❏ ᴛᴀʀɢᴇᴛ  : {W}@{target}")
-    print(f"{C}├─❏ ᴀᴍᴏᴜɴᴛ  : {W}{amount}")
-    print(f"{C}├─❏ ᴍᴏᴅᴇ    : {W}ᴛᴇʟᴇɢʀᴀᴍ {mode}")
-    print(f"{C}└─❏ sᴛᴀʀᴛᴇᴅ : {W}{datetime.now().strftime('%H:%M:%S')}")
-    print(f"{M}{'='*55}{RESET}\n")
-
-    for i in range(1, amount + 1):
-        if stop_flag:
-            break
-
-        msg_template = random.choice(TG_MESSAGES)
-        msg = inject_message(msg_template, f"@{target}")
-        subject = f"URGENT Report - @{target} - DSA Article 16 Notice"
-
-        # ᴇᴍᴀɪʟ
-        ok, recipient = send_email(f"@{target}", subject, msg, TG_ABUSE_EMAILS)
-        if ok:
-            stats["email_sent"] += 1
-        else:
-            stats["email_failed"] += 1
-
-        # ᴡᴇʙ
-        web_ok = send_web_report_tg(target, msg)
-        stats["web_sent"] += web_ok
-
-        stats["total"] += 1
-
-        elapsed = (datetime.now() - stats["start_time"]).seconds
-        bar = loading_bar(i, amount)
-
-        print(f"\r{bar} {C}[{i}/{amount}] {G}✉ {stats['email_sent']} {R}✗ {stats['email_failed']} {Y}🌐 {stats['web_sent']}{RESET}", end="", flush=True)
-
-        time.sleep(random.uniform(1.5, 3))
-
-    print(f"\n\n{M}{'='*55}")
-    print(f"{G}┌─「 ✅ ᴀᴛᴛᴀᴄᴋ ᴄᴏᴍᴘʟᴇᴛᴇ 」")
-    print(f"{G}├─❏ ᴛᴀʀɢᴇᴛ     : {W}@{target}")
-    print(f"{G}├─❏ 📧 ᴇᴍᴀɪʟ sᴇɴᴛ : {W}{stats['email_sent']}")
-    print(f"{G}├─❏ 📧 ᴇᴍᴀɪʟ ғᴀɪʟ : {W}{stats['email_failed']}")
-    print(f"{G}├─❏ 🌐 ᴡᴇʙ sᴇɴᴛ  : {W}{stats['web_sent']}")
-    print(f"{G}├─❏ ᴛᴏᴛᴀʟ ʀᴏᴜɴᴅs : {W}{stats['total']}")
-    elapsed = (datetime.now() - stats["start_time"]).seconds
-    print(f"{G}└─❏ ᴛɪᴍᴇ ᴛᴀᴋᴇɴ  : {W}{elapsed}s")
-    print(f"{M}{'='*55}{RESET}")
-    print(f"\n{Y}⏳ ᴡᴀɪᴛ 1–12 ʜᴏᴜʀs ғᴏʀ ʀᴇᴠɪᴇᴡ. sᴛᴀʏ ᴅᴀʀᴋ 😈{RESET}\n")
-
-
-def run_dsa_notice(target, amount):
-    global stop_flag
-    stop_flag = False
-    stats["email_sent"] = 0
-    stats["email_failed"] = 0
-    stats["total"] = 0
-    stats["start_time"] = datetime.now()
-
-    target = target.lstrip('@')
-    dsa_recipients = ["dsa-report@telegram.org", "legal@telegram.org", "abuse@telegram.org"]
-
-    print(f"\n{R}{BOLD}{'='*55}")
-    print(f"{R}┌─「 ⚖️ ᴅsᴀ ʟᴇɢᴀʟ ɴᴏᴛɪᴄᴇ — ɴᴜᴄʟᴇᴀʀ ᴍᴏᴅᴇ 🔥 」")
-    print(f"{R}├─❏ ᴛᴀʀɢᴇᴛ  : {W}@{target}")
-    print(f"{R}├─❏ ɴᴏᴛɪᴄᴇs : {W}{amount}")
-    print(f"{R}└─❏ sᴛᴀᴛᴜs  : {G}ғɪʀɪɴɢ...")
-    print(f"{R}{'='*55}{RESET}\n")
-
-    for i in range(1, amount + 1):
-        if stop_flag:
-            break
-
-        msg_template = random.choice(DSA_MESSAGES)
-        msg = inject_message(msg_template, f"@{target}")
-        subject = f"FORMAL DSA ARTICLE 16 NOTICE — DSA-{random.randint(100000,999999)} — @{target}"
-
-        ok, recipient = send_email(f"@{target}", subject, msg, dsa_recipients)
-        if ok:
-            stats["email_sent"] += 1
-            print(f"{G}[{i}/{amount}] ✅ ᴅsᴀ ɴᴏᴛɪᴄᴇ → {recipient}{RESET}")
-        else:
-            stats["email_failed"] += 1
-            print(f"{R}[{i}/{amount}] ❌ ғᴀɪʟᴇᴅ → {recipient}{RESET}")
-
-        stats["total"] += 1
-        time.sleep(random.uniform(2, 4))
-
-    print(f"\n{G}✅ {stats['email_sent']} ᴅsᴀ ɴᴏᴛɪᴄᴇs sᴇɴᴛ ᴛᴏ ᴛᴇʟᴇɢʀᴀᴍ ʟᴇɢᴀʟ ᴛᴇᴀᴍ{RESET}")
-    print(f"{Y}⏳ ᴛᴇʟᴇɢʀᴀᴍ ʜᴀs 72ʜ ᴛᴏ ʀᴇsᴘᴏɴᴅ ᴜɴᴅᴇʀ ᴅsᴀ ʟᴀᴡ 😈{RESET}\n")
-
-
-def run_attack_wa(phone, amount, mode="ban_perm"):
-    global stop_flag
-    stop_flag = False
-    stats["email_sent"] = 0
-    stats["email_failed"] = 0
-    stats["web_sent"] = 0
-    stats["total"] = 0
-    stats["start_time"] = datetime.now()
-
-    is_appeal = "appeal" in mode or "unban" in mode
-
-    if is_appeal:
-        messages = WA_APPEAL_MESSAGES
-        recipients = WA_APPEAL_EMAILS
-        label = "ᴜɴʙᴀɴ ᴀᴘᴘᴇᴀʟ"
-        emoji = "🥺"
-    else:
-        messages = WA_BAN_MESSAGES
-        recipients = WA_BAN_EMAILS
-        label = "ʙᴀɴ ʀᴇᴘᴏʀᴛ"
-        emoji = "🔥"
-
-    print(f"\n{M}{'='*55}")
-    print(f"{C}┌─「 {emoji} ᴡʜᴀᴛsᴀᴘᴘ {label} sᴛᴀʀᴛᴇᴅ 」")
-    print(f"{C}├─❏ ᴛᴀʀɢᴇᴛ  : {W}{phone}")
-    print(f"{C}├─❏ ᴀᴍᴏᴜɴᴛ  : {W}{amount}")
-    print(f"{C}└─❏ sᴛᴀʀᴛᴇᴅ : {W}{datetime.now().strftime('%H:%M:%S')}")
-    print(f"{M}{'='*55}{RESET}\n")
-
-    for i in range(1, amount + 1):
-        if stop_flag:
-            break
-
-        msg_template = random.choice(messages)
-        msg = inject_message(msg_template, phone)
-        subject = f"URGENT WhatsApp {label} — {phone}"
-
-        ok, recipient = send_email(phone, subject, msg, recipients)
-        if ok:
-            stats["email_sent"] += 1
-        else:
-            stats["email_failed"] += 1
-
-        web_ok = send_web_report_wa(phone, msg)
-        stats["web_sent"] += web_ok
-        stats["total"] += 1
-
-        bar = loading_bar(i, amount)
-        print(f"\r{bar} {C}[{i}/{amount}] {G}✉ {stats['email_sent']} {R}✗ {stats['email_failed']} {Y}🌐 {stats['web_sent']}{RESET}", end="", flush=True)
-
-        time.sleep(random.uniform(1.5, 3))
-
-    print(f"\n\n{G}┌─「 ✅ {label} ᴄᴏᴍᴘʟᴇᴛᴇ 」")
-    print(f"{G}├─❏ 📧 ᴇᴍᴀɪʟ sᴇɴᴛ : {W}{stats['email_sent']}")
-    print(f"{G}├─❏ 🌐 ᴡᴇʙ sᴇɴᴛ  : {W}{stats['web_sent']}")
-    print(f"{G}├─❏ ᴛᴏᴛᴀʟ ʀᴏᴜɴᴅs : {W}{stats['total']}")
-    elapsed = (datetime.now() - stats["start_time"]).seconds
-    print(f"{G}└─❏ ᴛɪᴍᴇ ᴛᴀᴋᴇɴ  : {W}{elapsed}s{RESET}\n")
-
-
-def show_stats():
+def show_attack_art(target, amount, mode):
+    print(f"{R}{BOLD}{ATTACK_ART}{RESET}")
     print(f"""
-{C}┌─「 📊 sᴛᴀᴛs 」
-{C}├─❏ 📧 ᴇᴍᴀɪʟ sᴇɴᴛ  : {G}{stats['email_sent']}
-{C}├─❏ 📧 ᴇᴍᴀɪʟ ғᴀɪʟᴇᴅ: {R}{stats['email_failed']}
-{C}├─❏ 🌐 ᴡᴇʙ sᴇɴᴛ   : {G}{stats['web_sent']}
-{C}└─❏ ᴛᴏᴛᴀʟ ʀᴏᴜɴᴅs  : {W}{stats['total']}
+{R}{BOLD}  ╔══════════════════════════════════════════════════╗
+  ║              🔥 ᴀᴛᴛᴀᴄᴋ ɪɴɪᴛɪᴀᴛᴇᴅ 🔥              ║
+  ╚══════════════════════════════════════════════════╝{RESET}
+{C}  ┌─「 ᴛᴀʀɢᴇᴛ ɪɴғᴏ 」
+{C}  ├─❏ ᴛᴀʀɢᴇᴛ  : {W}@{target}
+{C}  ├─❏ ᴍᴏᴅᴇ    : {W}{mode}
+{C}  ├─❏ ᴀᴍᴏᴜɴᴛ  : {W}{amount} ʀᴇᴘᴏʀᴛs
+{C}  └─❏ sᴛᴀʀᴛ   : {W}{datetime.now().strftime('%H:%M:%S')}
 {RESET}""")
 
+def show_final_stats(target):
+    elapsed = time.time() - stats["start_time"]
+    success_rate = (stats['email_sent'] / stats['total'] * 100) if stats['total'] > 0 else 0
+    print(f"""
+{M}  {'='*52}
+{G}  ┌─「 ✅ ᴀᴛᴛᴀᴄᴋ ᴄᴏᴍᴘʟᴇᴛᴇ 」
+{G}  ├─❏ ᴛᴀʀɢᴇᴛ         : {W}@{target}
+{G}  ├─❏ 📧 ᴇᴍᴀɪʟ sᴇɴᴛ   : {W}{stats['email_sent']}
+{G}  ├─❏ 📧 ᴇᴍᴀɪʟ ғᴀɪʟ   : {W}{stats['email_failed']}
+{G}  ├─❏ 🌐 ᴡᴇʙ sᴇɴᴛ    : {W}{stats['web_sent']}
+{G}  ├─❏ ᴛᴏᴛᴀʟ ʀᴏᴜɴᴅs   : {W}{stats['total']}
+{G}  ├─❏ ⏱️  ᴛɪᴍᴇ ᴛᴀᴋᴇɴ  : {W}{int(elapsed//60)}ᴍ {int(elapsed%60)}s
+{G}  └─❏ sᴜᴄᴄᴇss ʀᴀᴛᴇ  : {W}{success_rate:.1f}%
+{M}  {'='*52}{RESET}
+{Y}  ⏳ ᴡᴀɪᴛ 6-48ʜ ғᴏʀ ᴛᴇʟᴇɢʀᴀᴍ ʀᴇᴠɪᴇᴡ. sᴛᴀʏ ᴅᴀʀᴋ 😈{RESET}
+""")
+
+def reset_stats():
+    global stats
+    stats = {"email_sent": 0, "email_failed": 0, "web_sent": 0,
+             "web_failed": 0, "total": 0, "start_time": time.time()}
+
+def run_standard_ban(target, amount, entity_type="ᴜsᴇʀ"):
+    reset_stats()
+    target = target.lstrip('@')
+    show_attack_art(target, amount, f"sᴛᴀɴᴅᴀʀᴅ {entity_type} ʙᴀɴ")
+
+    SUBJECTS = [
+        f"URGENT: Criminal Activity Report — @{target} — DSA Article 16",
+        f"FORMAL COMPLAINT: Illegal Content @{target} — Immediate Action Required",
+        f"ABUSE REPORT: @{target} — CSAM + Drug Trafficking + Fraud",
+        f"DSA NOTICE: Violations Confirmed @{target} — 24h Action Required",
+        f"CHILD SAFETY EMERGENCY: Account @{target} — Mandatory Review"
+    ]
+
+    for i in range(1, amount + 1):
+        template = random.choice([DETAILED_REPORT, SHORT_REPORT])
+        message = inject_data(template, target)
+        subject = random.choice(SUBJECTS)
+
+        success, recipient, sender = send_email(target, subject, message, TG_EMAILS)
+
+        if success:
+            stats["email_sent"] += 1
+            print(f"{G}  [{i:03d}] ✓ → {recipient} ← {sender[:22]}...{RESET}")
+        else:
+            stats["email_failed"] += 1
+            print(f"{R}  [{i:03d}] ✗ ғᴀɪʟᴇᴅ → {recipient}{RESET}")
+
+        if i % 5 == 0:
+            web_success = send_web_report(target, message)
+            stats["web_sent"] += web_success
+            if web_success > 0:
+                print(f"{Y}  [{i:03d}] 🌐 ᴡᴇʙ: {web_success} ʀᴇᴘᴏʀᴛs ʜɪᴛ{RESET}")
+
+        stats["total"] += 1
+        if i % 10 == 0:
+            print(f"\n  {loading_bar(i, amount)} [{i}/{amount}] ✓{stats['email_sent']} ✗{stats['email_failed']} 🌐{stats['web_sent']}\n")
+
+        time.sleep(random.uniform(1.5, 3.5))
+
+    show_final_stats(target)
+
+def run_dsa_nuclear(target, amount):
+    reset_stats()
+    target = target.lstrip('@')
+    show_attack_art(target, amount, "ᴅsᴀ ʟᴇɢᴀʟ ɴᴜᴄʟᴇᴀʀ 🔥")
+    dsa_recipients = ["dsa-report@telegram.org", "legal@telegram.org", "abuse@telegram.org", "security@telegram.org"]
+
+    for i in range(1, amount + 1):
+        message = inject_data(DSA_LEGAL_NOTICE, target)
+        subject = f"FORMAL DSA ART.16 NOTICE — DSA-{random.randint(100000,999999)} — @{target} — {datetime.now().strftime('%d %b %Y')}"
+
+        success, recipient, sender = send_email(target, subject, message, dsa_recipients)
+
+        if success:
+            stats["email_sent"] += 1
+            print(f"{G}  [{i:02d}] ✅ ᴅsᴀ → {recipient}{RESET}")
+        else:
+            stats["email_failed"] += 1
+            print(f"{R}  [{i:02d}] ❌ ғᴀɪʟᴇᴅ → {recipient}{RESET}")
+
+        stats["total"] += 1
+        time.sleep(random.uniform(3, 6))
+
+    show_final_stats(target)
+
+def run_ncmec_nuclear(target, amount):
+    reset_stats()
+    target = target.lstrip('@')
+    show_attack_art(target, amount, "ɴᴄᴍᴇᴄ ᴄʏʙᴇʀᴛɪᴘ 💀")
+    ncmec_recipients = ["abuse@telegram.org", "legal@telegram.org", "stopCA@telegram.org", "security@telegram.org"]
+
+    for i in range(1, amount + 1):
+        message = inject_data(NCMEC_REPORT, target)
+        subject = f"NCMEC CYBERTIPLINE — CSAM REPORT — @{target} — NCMEC-{random.randint(100000,999999)}"
+
+        success, recipient, sender = send_email(target, subject, message, ncmec_recipients)
+
+        if success:
+            stats["email_sent"] += 1
+            print(f"{G}  [{i:02d}] ✅ ɴᴄᴍᴇᴄ → {recipient}{RESET}")
+        else:
+            stats["email_failed"] += 1
+            print(f"{R}  [{i:02d}] ❌ ғᴀɪʟᴇᴅ{RESET}")
+
+        stats["total"] += 1
+        time.sleep(random.uniform(2, 5))
+
+    show_final_stats(target)
+
+def run_interpol_notice(target, amount):
+    reset_stats()
+    target = target.lstrip('@')
+    show_attack_art(target, amount, "ɪɴᴛᴇʀᴘᴏʟ ɴᴏᴛɪᴄᴇ 🌍")
+    interpol_recipients = ["legal@telegram.org", "abuse@telegram.org", "security@telegram.org"]
+
+    for i in range(1, amount + 1):
+        message = inject_data(INTERPOL_NOTICE, target)
+        subject = f"INTERPOL CYBERCRIME NOTICE — IC-{random.randint(100000,999999)} — @{target}"
+
+        success, recipient, sender = send_email(target, subject, message, interpol_recipients)
+
+        if success:
+            stats["email_sent"] += 1
+            print(f"{G}  [{i:02d}] ✅ ɪɴᴛᴇʀᴘᴏʟ → {recipient}{RESET}")
+        else:
+            stats["email_failed"] += 1
+            print(f"{R}  [{i:02d}] ❌ ғᴀɪʟᴇᴅ{RESET}")
+
+        stats["total"] += 1
+        time.sleep(random.uniform(3, 6))
+
+    show_final_stats(target)
+
+def run_email_flood(target, amount):
+    reset_stats()
+    target = target.lstrip('@')
+    show_attack_art(target, amount, "ᴍᴀss ᴇᴍᴀɪʟ ғʟᴏᴏᴅ ⚡")
+
+    lock = threading.Lock()
+
+    def send_batch(batch_num, start, end):
+        for i in range(start, end):
+            template = random.choice([DETAILED_REPORT, SHORT_REPORT, DSA_LEGAL_NOTICE, NCMEC_REPORT])
+            message = inject_data(template, target)
+            subject = f"URGENT REPORT #{i} — @{target} — DSA-{random.randint(100000,999999)}"
+
+            success, recipient, sender = send_email(target, subject, message, TG_EMAILS)
+
+            with lock:
+                if success:
+                    stats["email_sent"] += 1
+                    print(f"{G}  [T{batch_num}|{i:03d}] ✓ {recipient[:18]}...{RESET}")
+                else:
+                    stats["email_failed"] += 1
+                    print(f"{R}  [T{batch_num}|{i:03d}] ✗ ғᴀɪʟᴇᴅ{RESET}")
+                stats["total"] += 1
+
+            time.sleep(random.uniform(0.5, 1.5))
+
+    threads = []
+    batch_size = max(1, amount // 3)
+    for i in range(3):
+        start = i * batch_size + 1
+        end = start + batch_size if i < 2 else amount + 1
+        t = threading.Thread(target=send_batch, args=(i+1, start, end))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    show_final_stats(target)
+
+def run_nuclear_all_in_one(target, amount):
+    """ᴜsᴇ ᴀʟʟ 5 ᴛᴇᴍᴘʟᴀᴛᴇs + ᴀʟʟ ʀᴇᴄɪᴘɪᴇɴᴛs + ᴛʜʀᴇᴀᴅᴇᴅ"""
+    reset_stats()
+    target = target.lstrip('@')
+    show_attack_art(target, amount, "ɴᴜᴄʟᴇᴀʀ ᴀʟʟ-ɪɴ-ᴏɴᴇ 💣")
+
+    ALL_TEMPLATES = [DETAILED_REPORT, SHORT_REPORT, DSA_LEGAL_NOTICE, NCMEC_REPORT, INTERPOL_NOTICE]
+    ALL_RECIPIENTS = TG_EMAILS
+
+    lock = threading.Lock()
+
+    def nuclear_batch(batch_num, start, end):
+        for i in range(start, end):
+            template = ALL_TEMPLATES[i % len(ALL_TEMPLATES)]
+            message = inject_data(template, target)
+            subjects = [
+                f"URGENT DSA NOTICE — @{target} — DSA-{random.randint(100000,999999)}",
+                f"NCMEC CYBERTIP — CSAM @{target} — MANDATORY ACTION",
+                f"INTERPOL NOTICE IC-{random.randint(100000,999999)} — @{target}",
+                f"FORMAL LEGAL COMPLAINT — @{target} — {datetime.now().strftime('%d %b %Y')}",
+                f"CRITICAL ABUSE REPORT — @{target} — IMMEDIATE ACTION"
+            ]
+            subject = random.choice(subjects)
+            success, recipient, sender = send_email(target, subject, message, ALL_RECIPIENTS)
+
+            with lock:
+                if success:
+                    stats["email_sent"] += 1
+                    print(f"{G}  [💣{batch_num}|{i:03d}] ✓ {recipient[:20]}...{RESET}")
+                else:
+                    stats["email_failed"] += 1
+                    print(f"{R}  [💣{batch_num}|{i:03d}] ✗ ғᴀɪʟᴇᴅ{RESET}")
+                stats["total"] += 1
+
+            if i % 5 == 0:
+                web_hits = send_web_report(target, message)
+                with lock:
+                    stats["web_sent"] += web_hits
+
+            time.sleep(random.uniform(0.8, 2.0))
+
+    threads = []
+    batch_size = max(1, amount // 4)
+    for i in range(4):
+        start = i * batch_size + 1
+        end = start + batch_size if i < 3 else amount + 1
+        t = threading.Thread(target=nuclear_batch, args=(i+1, start, end))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    show_final_stats(target)
+
+def run_multi_target(targets, amount_per_target):
+    print(f"""
+{B}{BOLD}  {'='*52}
+{B}  ┌─「 🎯 ᴍᴜʟᴛɪ-ᴛᴀʀɢᴇᴛ ʙᴀɴ 」
+{B}  ├─❏ ᴛᴀʀɢᴇᴛs    : {W}{len(targets)}
+{B}  ├─❏ ᴘᴇʀ ᴛᴀʀɢᴇᴛ : {W}{amount_per_target}
+{B}  └─❏ ᴛᴏᴛᴀʟ      : {W}{len(targets) * amount_per_target}
+{B}  {'='*52}{RESET}
+""")
+    for idx, target in enumerate(targets, 1):
+        print(f"\n{C}  [{idx}/{len(targets)}] ▶ @{target.lstrip('@')}{RESET}\n")
+        run_standard_ban(target, amount_per_target)
+        if idx < len(targets):
+            print(f"\n{Y}  ⏳ ᴡᴀɪᴛɪɴɢ 30s...{RESET}")
+            time.sleep(30)
+
+# ═══════════════════════════════════════════════════════════════════
+# ᴍᴀɪɴ
+# ═══════════════════════════════════════════════════════════════════
 
 def main():
+    if not authenticate():
+        sys.exit(0)
+
     banner()
 
     while True:
         print_menu()
-        choice = get_input("ᴇɴᴛᴇʀ ᴄʜᴏɪᴄᴇ →")
+        choice = get_input("  ᴇɴᴛᴇʀ ᴄʜᴏɪᴄᴇ →", Y)
 
         if choice == "0":
-            print(f"\n{Y}sᴛᴀʏ ᴅᴀʀᴋ. ʜɪᴛ ᴄʟᴇᴀɴ. 😈👑{RESET}\n")
+            print(f"\n{Y}  sᴛᴀʏ ᴅᴀʀᴋ. ʜɪᴛ ᴄʟᴇᴀɴ. 😈👑{RESET}\n")
             sys.exit(0)
 
-        elif choice == "1":
+        elif choice in ["1", "2", "3"]:
             banner()
-            target = get_input("ᴇɴᴛᴇʀ ᴛᴇʟᴇɢʀᴀᴍ ᴜsᴇʀɴᴀᴍᴇ (ᴡɪᴛʜᴏᴜᴛ @) →")
-            if not target:
-                print(f"{R}ɪɴᴠᴀʟɪᴅ ᴛᴀʀɢᴇᴛ{RESET}")
-                continue
-            try:
-                amount = int(get_input("ᴇɴᴛᴇʀ ᴀᴍᴏᴜɴᴛ (1–200) →"))
-                amount = min(max(amount, 1), 200)
-            except:
-                print(f"{R}ɪɴᴠᴀʟɪᴅ ᴀᴍᴏᴜɴᴛ{RESET}")
-                continue
-            run_attack_tg(target, amount, "user")
-            input(f"\n{C}ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
-            banner()
-
-        elif choice == "2":
-            banner()
-            target = get_input("ᴇɴᴛᴇʀ ᴄʜᴀɴɴᴇʟ ᴜsᴇʀɴᴀᴍᴇ (ᴡɪᴛʜᴏᴜᴛ @) →")
-            if not target:
-                continue
-            try:
-                amount = int(get_input("ᴇɴᴛᴇʀ ᴀᴍᴏᴜɴᴛ (1–200) →"))
-                amount = min(max(amount, 1), 200)
-            except:
-                continue
-            run_attack_tg(target, amount, "channel")
-            input(f"\n{C}ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
-            banner()
-
-        elif choice == "3":
-            banner()
-            target = get_input("ᴇɴᴛᴇʀ ɢʀᴏᴜᴘ ᴜsᴇʀɴᴀᴍᴇ (ᴡɪᴛʜᴏᴜᴛ @) →")
-            if not target:
-                continue
-            try:
-                amount = int(get_input("ᴇɴᴛᴇʀ ᴀᴍᴏᴜɴᴛ (1–200) →"))
-                amount = min(max(amount, 1), 200)
-            except:
-                continue
-            run_attack_tg(target, amount, "group")
-            input(f"\n{C}ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            entity_map = {"1": "ᴜsᴇʀ", "2": "ᴄʜᴀɴɴᴇʟ", "3": "ɢʀᴏᴜᴘ"}
+            target = get_target()
+            if not target: continue
+            amount = get_amount(200)
+            if not amount: continue
+            run_standard_ban(target, amount, entity_map[choice])
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
             banner()
 
         elif choice == "4":
             banner()
-            print(f"{R}{BOLD}⚖️ ᴅsᴀ ʟᴇɢᴀʟ ɴᴏᴛɪᴄᴇ — ɴᴜᴄʟᴇᴀʀ ᴍᴏᴅᴇ{RESET}")
-            print(f"{Y}ᴛʜɪs sᴇɴᴅs ғᴏʀᴍᴀʟ ᴇᴜ ʟᴇɢᴀʟ ɴᴏᴛɪᴄᴇs ᴅɪʀᴇᴄᴛʟʏ ᴛᴏ ᴛᴇʟᴇɢʀᴀᴍ's ʟᴇɢᴀʟ ᴛᴇᴀᴍ{RESET}\n")
-            target = get_input("ᴇɴᴛᴇʀ ᴛᴀʀɢᴇᴛ ᴜsᴇʀɴᴀᴍᴇ/ᴄʜᴀɴɴᴇʟ (ᴡɪᴛʜᴏᴜᴛ @) →")
-            if not target:
-                continue
-            try:
-                amount = int(get_input("ᴇɴᴛᴇʀ ɴᴜᴍʙᴇʀ ᴏғ ɴᴏᴛɪᴄᴇs (1–50) →"))
-                amount = min(max(amount, 1), 50)
-            except:
-                continue
-            run_dsa_notice(target, amount)
-            input(f"\n{C}ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            target = get_target()
+            if not target: continue
+            amount = get_amount(50)
+            if not amount: continue
+            run_dsa_nuclear(target, amount)
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
             banner()
 
         elif choice == "5":
             banner()
-            phone = get_input("ᴇɴᴛᴇʀ ᴡʜᴀᴛsᴀᴘᴘ ɴᴜᴍʙᴇʀ (ᴡɪᴛʜ +) →")
-            if not phone.startswith('+'):
-                print(f"{R}ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ. ᴜsᴇ +ᴄᴏᴜɴᴛʀʏᴄᴏᴅᴇ{RESET}")
+            target = get_target()
+            if not target: continue
+            amount = get_amount(500)
+            if not amount: continue
+            confirm = get_input(f"{R}  ᴀʀᴇ ʏᴏᴜ sᴜʀᴇ? (ʏᴇs/ɴᴏ) →{RESET}", R)
+            if confirm.lower() != "yes":
+                print(f"{Y}  ᴄᴀɴᴄᴇʟʟᴇᴅ.{RESET}")
                 continue
-            try:
-                amount = int(get_input("ᴇɴᴛᴇʀ ᴀᴍᴏᴜɴᴛ (1–400) →"))
-                amount = min(max(amount, 1), 400)
-            except:
-                continue
-            run_attack_wa(phone, amount, "ban_temp")
-            input(f"\n{C}ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            run_email_flood(target, amount)
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
             banner()
 
         elif choice == "6":
             banner()
-            phone = get_input("ᴇɴᴛᴇʀ ᴡʜᴀᴛsᴀᴘᴘ ɴᴜᴍʙᴇʀ (ᴡɪᴛʜ +) →")
-            if not phone.startswith('+'):
-                print(f"{R}ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ. ᴜsᴇ +ᴄᴏᴜɴᴛʀʏᴄᴏᴅᴇ{RESET}")
-                continue
-            try:
-                amount = int(get_input("ᴇɴᴛᴇʀ ᴀᴍᴏᴜɴᴛ (1–400) →"))
-                amount = min(max(amount, 1), 400)
-            except:
-                continue
-            run_attack_wa(phone, amount, "ban_perm")
-            input(f"\n{C}ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            target = get_target()
+            if not target: continue
+            amount = get_amount(50)
+            if not amount: continue
+            run_ncmec_nuclear(target, amount)
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
             banner()
 
         elif choice == "7":
             banner()
-            phone = get_input("ᴇɴᴛᴇʀ ᴡʜᴀᴛsᴀᴘᴘ ɴᴜᴍʙᴇʀ (ᴡɪᴛʜ +) →")
-            if not phone.startswith('+'):
-                print(f"{R}ɪɴᴠᴀʟɪᴅ ɴᴜᴍʙᴇʀ. ᴜsᴇ +ᴄᴏᴜɴᴛʀʏᴄᴏᴅᴇ{RESET}")
-                continue
-            try:
-                amount = int(get_input("ᴇɴᴛᴇʀ ᴀᴍᴏᴜɴᴛ (1–400) →"))
-                amount = min(max(amount, 1), 400)
-            except:
-                continue
-            run_attack_wa(phone, amount, "unban_appeal")
-            input(f"\n{C}ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            target = get_target()
+            if not target: continue
+            amount = get_amount(30)
+            if not amount: continue
+            run_interpol_notice(target, amount)
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
             banner()
 
         elif choice == "8":
-            show_stats()
-            input(f"\n{C}ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            banner()
+            print(f"{Y}  ᴄᴜsᴛᴏᴍ ʀᴇᴘᴏʀᴛ ᴍᴏᴅᴇ{RESET}\n")
+            target = get_target()
+            if not target: continue
+            print(f"\n{C}  sᴇʟᴇᴄᴛ ᴛᴇᴍᴘʟᴀᴛᴇ:")
+            print(f"  {W}[1] ᴅᴇᴛᴀɪʟᴇᴅ ʀᴇᴘᴏʀᴛ")
+            print(f"  {W}[2] sʜᴏʀᴛ ʀᴇᴘᴏʀᴛ")
+            print(f"  {W}[3] ᴅsᴀ ʟᴇɢᴀʟ ɴᴏᴛɪᴄᴇ")
+            print(f"  {W}[4] ɴᴄᴍᴇᴄ ᴄʏʙᴇʀᴛɪᴘ")
+            print(f"  {W}[5] ɪɴᴛᴇʀᴘᴏʟ ɴᴏᴛɪᴄᴇ{RESET}")
+            rc = get_input("  ᴄʜᴏɪᴄᴇ →", Y)
+            if rc not in ["1","2","3","4","5"]:
+                print(f"{R}  ɪɴᴠᴀʟɪᴅ{RESET}")
+                continue
+            amount = get_amount(100)
+            if not amount: continue
+            run_standard_ban(target, amount)
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            banner()
+
+        elif choice == "9":
+            banner()
+            targets = []
+            while True:
+                t = get_input(f"  ᴛᴀʀɢᴇᴛ #{len(targets)+1} (ᴏʀ 'ᴅᴏɴᴇ') →", Y)
+                if t.lower() == "done": break
+                if t: targets.append(t)
+            if not targets:
+                print(f"{R}  ɴᴏ ᴛᴀʀɢᴇᴛs{RESET}")
+                continue
+            amount = get_amount(100)
+            if not amount: continue
+            run_multi_target(targets, amount)
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            banner()
+
+        elif choice == "10":
+            banner()
+            print(f"{R}{BOLD}  💣 ɴᴜᴄʟᴇᴀʀ ᴀʟʟ-ɪɴ-ᴏɴᴇ — ᴍᴀxɪᴍᴜᴍ ᴅᴀᴍᴀɢᴇ{RESET}\n")
+            target = get_target()
+            if not target: continue
+            amount = get_amount(300)
+            if not amount: continue
+            confirm = get_input(f"{R}  ᴄᴏɴғɪʀᴍ ɴᴜᴄʟᴇᴀʀ ᴀᴛᴛᴀᴄᴋ? (ʏᴇs/ɴᴏ) →{RESET}", R)
+            if confirm.lower() != "yes":
+                print(f"{Y}  ᴄᴀɴᴄᴇʟʟᴇᴅ.{RESET}")
+                continue
+            run_nuclear_all_in_one(target, amount)
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ...{RESET}")
+            banner()
+
+        elif choice == "11":
+            print(f"""
+{C}  ┌─「 📊 sᴇssɪᴏɴ sᴛᴀᴛɪsᴛɪᴄs 」
+{C}  ├─❏ 📧 ᴇᴍᴀɪʟ sᴇɴᴛ    : {G}{stats.get('email_sent', 0)}
+{C}  ├─❏ 📧 ᴇᴍᴀɪʟ ғᴀɪʟᴇᴅ  : {R}{stats.get('email_failed', 0)}
+{C}  ├─❏ 🌐 ᴡᴇʙ ʜɪᴛs     : {G}{stats.get('web_sent', 0)}
+{C}  ├─❏ 🔄 ᴛᴏᴛᴀʟ ʀᴏᴜɴᴅs  : {W}{stats.get('total', 0)}
+{C}  ├─❏ 📨 sᴍᴛᴘ ᴀᴄᴄᴏᴜɴᴛs : {W}{len(SMTP_ACCOUNTS)}
+{C}  ├─❏ 📬 ᴛɢ ᴇᴍᴀɪʟs    : {W}{len(TG_EMAILS)}
+{C}  └─❏ 📝 ᴛᴇᴍᴘʟᴀᴛᴇs    : {W}5
+{RESET}""")
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ...{RESET}")
+            banner()
+
+        elif choice == "12":
+            print(f"""
+{M}  ┌─「 ⚙️ sᴇᴛᴛɪɴɢs 」
+{M}  ├─❏ ᴏᴡɴᴇʀ         : {W}{OWNER}
+{M}  ├─❏ ᴄʜᴀɴɴᴇʟ       : {W}{CHANNEL}
+{M}  ├─❏ ᴠᴇʀsɪᴏɴ       : {W}{VERSION}
+{M}  ├─❏ sᴍᴛᴘ ᴘᴏʀᴛs   : {W}587 ᴛʟs / 465 ssl
+{M}  ├─❏ ᴛʜʀᴇᴀᴅs       : {W}4 (ɴᴜᴄʟᴇᴀʀ) / 3 (ғʟᴏᴏᴅ)
+{M}  ├─❏ ᴡᴇʙ ᴇɴᴅᴘᴏɪɴᴛs: {W}{len(WEB_ENDPOINTS)}
+{M}  └─❏ ᴍᴇᴛʜᴏᴅ       : {W}ᴇᴍᴀɪʟ + ᴡᴇʙ + ᴛʜʀᴇᴀᴅᴇᴅ
+{RESET}""")
+            input(f"\n{C}  ᴘʀᴇss ᴇɴᴛᴇʀ...{RESET}")
             banner()
 
         else:
-            print(f"{R}ɪɴᴠᴀʟɪᴅ ᴄʜᴏɪᴄᴇ.{RESET}")
-
+            print(f"{R}  [!] ɪɴᴠᴀʟɪᴅ ᴄʜᴏɪᴄᴇ{RESET}")
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print(f"\n\n{Y}sᴛᴀʏ ᴅᴀʀᴋ. ʜɪᴛ ᴄʟᴇᴀɴ. 😈👑{RESET}\n")
+        print(f"\n\n{Y}  sᴛᴀʏ ᴅᴀʀᴋ. ʜɪᴛ ᴄʟᴇᴀɴ. 😈👑{RESET}\n")
         sys.exit(0)
+    except Exception as e:
+        print(f"\n{R}  [!] ᴇʀʀᴏʀ: {str(e)}{RESET}\n")
+        sys.exit(1)
